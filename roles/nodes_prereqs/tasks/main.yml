@@ -1,15 +1,17 @@
 ---
-  - name: Activate Satellite repositories
-    rhsm_repository:
-      name: "{{ item }}"
-      state: enabled
-    with_items:
-      - rhel-7-server-extras-rpms
-      - rhel-server-rhscl-7-rpms
-      - rhel-7-server-optional-rpms
-      - "{{ awx_repo }}"
-      - "{{ epel_repo }}"
-      - "{{ awx_dependencies_repo }}"
+#  - name: Activate Satellite repositories
+#    rhsm_repository:
+#      name: "{{ item }}"
+#      state: enabled
+#    with_items:
+#      - rhel-7-server-extras-rpms
+#      - rhel-server-rhscl-7-rpms
+#      - rhel-7-server-optional-rpms
+#      - "{{ awx_repo }}"
+#      - "{{ epel_repo }}"
+#      - "{{ awx_dependencies_repo }}"
+#    tags:
+#      - skip
 
   - name: Install rh-python36-build
     yum:
@@ -25,12 +27,14 @@
   - name: Install Python dependencies
     shell: yum install -y -x "*-debuginfo, rh-python36-python-wheel-0.30.0a0-1.el7.noarch, rh-python36-Babel-2.6.0-1.noarch, rh-python36-python-sqlalchemy-1.1.14-1.el7.x86_64, rh-python36-python-six-1.11.0-1.el7.noarch, rh-python36-python-psycopg2-2.7.3-1.el7.x86_64, rh-python36-python-psycopg2-doc-2.7.3-1.el7.x86_64" "rh-python36*"
   
-  - name: Install Ansible & tower-cli
-    yum:
-      name: 
-        - ansible 
-        - tower-cli
-      state:present
+#  - name: Install Ansible & tower-cli
+#    yum:
+#      name: 
+#        - ansible 
+#        - tower-cli
+#      state: present
+#    tags:
+#        - skip
 
   - name: Install RabbitMQ
     yum:
@@ -91,6 +95,9 @@
       proto: tcp
       setype: http_port_t
       state: present
+    when: ansible_selinux.status == 'enabled'
+    tags:
+      - skip
 
   - name: Start & enable NGINX service at boot
     service:

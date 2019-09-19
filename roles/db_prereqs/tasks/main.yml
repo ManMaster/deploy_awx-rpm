@@ -1,10 +1,12 @@
 ---
-  - name: Activate Satellite repositories
-    rhsm_repository:
-      name: "{{ item }}"
-      state: enabled
-    with_items:
-      - rhel-server-rhscl-7-rpms
+#  - name: Activate Satellite repositories
+#    rhsm_repository:
+#      name: "{{ item }}"
+#      state: enabled
+#    with_items:
+#      - rhel-server-rhscl-7-rpms
+#    tags:
+#      - skip
 
   - name: Install PostgreSQL
     yum:
@@ -23,6 +25,10 @@
       fstype: "{{ db_disk_fs_type }}"
       state: absent
 
+#There has a bug, when changed PostgreSQL directory, the systemd target is still stayed at /opt directory, 
+# restart machine need to change /usr/lib/systemd/system/rh-postgresql10-postgresql.service target
+# because default ExecStartPre and ExecStart working environment is /opt/rh/rh-postgresql10/root/usr/, 
+# this need change to /var/lib/pgsql/rh/rh-postgresql10/root/usr/
   - name: Mount /data volume to PostgreSQL directory
     mount:
       path: /var/lib/pgsql

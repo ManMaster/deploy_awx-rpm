@@ -7,18 +7,47 @@
 
   - name: Generate password for AWX admin user
     set_fact:
-      password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+#      password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+      password: "{{ awx_admin_password }}"
 
   - name : Display password for AWX admin user
     debug:
       msg: "Randomly generated password for AWX admin user is : {{ password }}"
 
+  - name: Check for awx Super users
+    shell: echo "from django.contrib.auth.models import User; nsu = User.objects.filter(is_superuser=True).count(); exit(0 if nsu > 0 else 1)" | sudo -u awx scl enable rh-python36 rh-postgresql10 "GIT_PYTHON_REFRESH=quiet awx-manage shell"
+    register: super_check
+    become_user: '{{ aw_user }}'
+    become: True
+    ignore_errors: yes
+    changed_when: super_check.rc > 0
+    when: inventory_hostname == groups['nodes'][0]
+  
   - name: Launch initial configuration of AWX
+    shell: |
+      echo "from django.contrib.auth.models import User; User.objects.create_superuser('{{ admin_username }}', '{{ admin_email }}', '{{ awx_install_admin_password }}')" | scl enable rh-python36 rh-postgresql10 "awx-manage shell"
+      scl enable rh-python36 rh-postgresql10 "awx-manage create_preload_data"
     become: true
     become_user: awx
-    shell: |
-      echo "from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'root@localhost', '{{ password }}')" | scl enable rh-python36 rh-postgresql10 "awx-manage shell"
-      scl enable rh-python36 rh-postgresql10 "awx-manage create_preload_data"
+    no_log: True
+    when: inventory_hostname == groups['nodes'][0] and super_check.rc > 0
+
+  - name: update django super user password
+    shell: scl enable rh-python36 rh-postgresql10 "awx-manage update_password --username='{{ admin_username }}' --password='{{ awx_install_admin_password }}'"
+    become_user: '{{ aw_user }}'
+    become: True
+    no_log: True
+    register: result
+    changed_when: "'Password updated' in result.stdout"
+    when: awx_install_admin_password != '' and inventory_hostname == groups['nodes'][0]
+  
+  - name: Collect static files for Tower.
+    command: scl enable rh-python36 rh-postgresql10 "awx-manage collectstatic --noinput --clear -v0"
+    become_user: root
+    become: True
+    # When using --clear, this command will *always* result in a change
+    # register: awx_collectstatic
+    # changed_when: "not awx_collectstatic.stdout_lines[-1].startswith('0 static files')"
 
   - name: Get value of Erlang cookie for RabbitMQ
     become: true

@@ -4,3 +4,12 @@ awx_dependencies_repo: awx_ansible-awx_dependencies
 rabbitmq_repo: rabbitMQ_rabbitmq-repo
 erlang_repo: rabbitMQ_erlang21-repo
 epel_repo: rhel_7_epel_-_rhel_7_repository
+
+# Django Options
+admin_username: admin
+admin_email: admin@example.com
+awx_admin_password: password
+
+# Unprivileged User Account (for now, don't change this username)
+aw_user: awx
+aw_group: awx

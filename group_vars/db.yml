@@ -1,4 +1,5 @@
 ---
-default_db_disk_mount: /data
-db_disk_src: /dev/mapper/data-data
+default_db_disk_mount: /opt
+db_disk_src: /dev/mapper/rootvg-lv_pgsql
 db_disk_fs_type: xfs
+pgsql_user_awx_password: password

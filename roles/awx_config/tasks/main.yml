@@ -1,0 +1,94 @@
+---
+# Tasks for installing and configuring the Ansible Tower application.
+- name: Ensure awx is in the nginx group
+  user:
+    append: yes
+    name: awx
+    groups: nginx
+
+- name: Configure the Tower settings directory.
+  file: path=/etc/tower state=directory owner=root group={{aw_group}} mode=0755
+
+- name: Configure the Tower socket directory.
+  file: path=/var/run/tower state=directory owner=nginx group=nginx mode=2775
+
+- name: Configure the Tower socket directory for tmpfiles.d
+  template:
+    src: tower.conf.j2
+    dest: /etc/tmpfiles.d/tower.conf
+    force: yes
+    mode: '0640'
+    owner: root
+    group: root
+
+- name: Configure the Tower system user's home directory.
+  file: path={{awx_install_home}} state=directory owner={{aw_user}} group={{aw_group}} mode=0755
+
+- name: Configure the Tower system user's .ssh directory.
+  file: path={{awx_install_home}}/.ssh state=directory owner={{aw_user}} group={{aw_group}} mode=0700
+
+- name: Configure the Tower projects directory.
+  file: path={{awx_install_home}}/projects state=directory owner={{aw_user}} group={{aw_group}} mode=0750
+
+- name: Configure the Tower job output directory.
+  file: path={{awx_install_home}}/job_status state=directory owner={{aw_user}} group={{aw_group}} mode=0750
+
+- name: Configure the Tower static directory.
+  file: path={{awx_install_home}}/public/static state=directory owner=root group={{aw_group}} mode=0755 recurse=yes
+
+- name: Add Towers `conf.d` directory.
+  file: path=/etc/tower/conf.d state=directory owner=root group={{aw_group}} mode=0750
+
+- name: configure tower log directory
+  file: path=/var/log/tower state=directory owner={{aw_user}} group={{aw_group}} mode=0750
+
+# When running with an external database, we need to remove 'postgresql' from
+# the list of tower managed services.
+- name: update ansible-tower service configuration
+  template:
+    src: ansible-tower.sysconfig.j2
+    dest: '{{tower_sysconfig_path}}'
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: get the awx version
+  shell: scl enable rh-python36 "awx-manage version"
+  become_user: '{{ aw_user }}'
+  become: True
+  register: awx_version
+
+- name: store the awx version
+  copy:
+    dest: '{{ awx_install_home }}/.awx_version'
+    owner: root
+    group: root
+    mode: 0644
+    content: '{{ awx_version.stdout }}'
+  become_user: root
+  become: True
+
+- name: Get configuration files to set permissions on
+  shell: ls /etc/tower/conf.d/*.py
+  register: configuration_files
+  changed_when: false
+
+- name: Clean up any poorly-permissioned Tower configuration files on upgrade
+  file:
+    path: "{{ item }}"
+    state: file
+    owner: root
+    group: awx
+    mode: 0640
+  become_user: root
+  become: True
+  with_items: "{{ configuration_files.stdout_lines }} + ['/etc/tower/settings.py']"
+
+- name: Fixup tower log directory permissions post-migration
+  file:
+    path: '/var/log/tower'
+    state: 'directory'
+    owner: '{{aw_user}}'
+    group: '{{aw_group}}'
+    recurse: true
+    mode: 'u=rwX,g=rX,o-rwx'

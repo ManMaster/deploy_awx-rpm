@@ -24,6 +24,8 @@
   - name: Get pre check value and compute total
     set_fact: total="{{ ( groups['nodes'] | map('extract', hostvars, ['precheck', 'matched']) | sum() ) + ((hostvars[item].precheck.stdout) | int )}}"
     with_items: "{{ groups['db'][0] }}"
+    tags:
+      - skip
 
   - name: Manual - Pause when AWX is already installed
     pause:
@@ -32,12 +34,16 @@
     register: choice
     delegate_to: localhost
     when: total !="0"
+    tags:
+      - skip
 
   - name: Register choice to all hosts
     set_fact:
       user_choice: "{{ hostvars[item].choice.user_input }}"
     with_items: "{{ groups['all'][0] }}"
     when: total !="0"
+    tags:
+      - skip
 
 # Start operations on DB servers
 - hosts: db
@@ -75,6 +81,12 @@
       name: nodes_prereqs
     tags:
       - nodesprereqs
+
+  - name: configure on AWX nodes
+    include_role:
+      name: awx_config
+    tags:
+      - awxconfig
     when: (hostvars[inventory_hostname].user_choice is not defined) or (hostvars[inventory_hostname].user_choice | bool)
 
 # On first AWX node only:

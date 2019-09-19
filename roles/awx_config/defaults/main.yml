@@ -1,0 +1,30 @@
+---
+# Ansible repository location. This should be the
+# root of the repo, and does not include the /deb or /rpm path
+aw_repo_url: "http://releases.ansible.com/ansible-tower"
+
+
+# Logging Options
+log_level: ERROR
+log_rotate_size: 5242880
+log_backup_count: 5
+syslog_facility: local0
+syslog_level: ERROR
+
+# Specify ansible-tower service configuration file
+tower_sysconfig_path: '/etc/sysconfig/ansible-tower'
+
+# Apache Options
+# these addresses should match the external name of your server as you
+# are going to access them from other machines
+awx_install_nginx_server_name: 'localhost'
+
+# Memcache binding
+awx_install_memcached_bind: 'unix:/var/run/memcached/memcached.sock'
+
+# Params
+awx_install_exec_vars_only: false
+awx_install_supervisor_init_name: None
+awx_install_supervisor_socket_location: None
+awx_install_pg_init_name: None
+awx_install_home: '/var/lib/awx'
